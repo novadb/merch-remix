@@ -1,5 +1,5 @@
 /** `/{region}/{path}`: a CMS page (with its live product range) or a product from the PIM. */
-import { createController } from 'remix/router'
+import { createAction } from 'remix/router'
 
 import { alternatesOf, isRegion, OTHER_LANGUAGE_REGION, type Region } from '../../lib/i18n.ts'
 import { picturesByIds, type Picture } from '../../lib/images.ts'
@@ -17,32 +17,23 @@ import { notFound } from '../not-found.tsx'
 import { CmsPage } from './page.tsx'
 import { ProductPage } from './product.tsx'
 
-/**
- * GET shows the page as opened; the range form (facets, sorting, "Show more") posts to the page itself and gets the
- * page with the range for its fields (`formData()` gives a GET an empty form).
- */
-export default createController(routes.page, {
-  actions: {
-    index: (context) => respond(context, context.params),
-    action: (context) => respond(context, context.params),
-  },
-})
-
-async function respond(context: AppContext, { region, path = '' }: { region: string; path?: string }) {
+/** The page as opened, or with the range for the query's fields: the range form (facets, sorting, "Show more") is a GET form to the page itself. */
+export default createAction(routes.page, async (context) => {
+  let { region, path = '' } = context.params
   if (!isRegion(region)) return notFound(context, region)
   let [shell, site, groups] = await Promise.all([loadShell(region), loadSite(region), loadGroups(region)])
   let page = site.byPath.get(path)
-  if (!page) return context.method === 'GET' ? productResponse(context, shell, site, groups, path) : notFound(context, region)
+  if (!page) return productResponse(context, shell, site, groups, path)
 
-  let [range, data] = await Promise.all([pageRange(page, region, context.formData), pageData(shell, site, page)])
+  let [range, data] = await Promise.all([pageRange(page, region, context.url.searchParams), pageData(shell, site, page)])
   return context.render(<CmsPage {...data} seo={seoOf(context.url, page.url, data.alternates)} range={range} groups={groups} />)
-}
+})
 
-/** The live range of a category page: the products of its groups; null for a page without one. */
-async function pageRange(page: Page, region: Region, form: FormData) {
+/** The live range of a category page: the products of its groups, for the filters in the query; null for a page without one. */
+async function pageRange(page: Page, region: Region, query: URLSearchParams) {
   if (!page.groupRefs.length) return null
   let products = await loadProducts(region, `${PRODUCT.group} = ${page.groupRefs.join(', ')}`)
-  return products.length ? rangeOf(products, form, 'name') : null
+  return products.length ? rangeOf(products, query, 'name') : null
 }
 
 /** A page in the breadcrumb, named as in the navigation. */

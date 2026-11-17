@@ -1,7 +1,7 @@
 /**
- * A live product range: facet filters as a POST form (the URL stays the page's), sorting and the product grid. Every
- * change posts the form to the page, which answers with itself. In the browser `RangeBehaviour` posts it in the
- * background and reconciles the answer into the page.
+ * A live product range: facet filters as a GET form (its fields are the page's query string, so a filtered view has an
+ * address of its own), sorting and the product grid. Every change sends the form to the page, which answers with
+ * itself. In the browser `RangeBehaviour` has the runtime navigate to that address and reconcile the answer into the page.
  */
 import type { Handle } from 'remix/component'
 
@@ -30,8 +30,8 @@ export function Range(handle: Handle<Props>) {
 
     return (
       <section class="range" id="range" aria-label={text.filter}>
-        {/* `#range`: without JavaScript the answer opens at the range. */}
-        <form class="facets" id="facets" method="post" action="#range">
+        {/* `#range`: without JavaScript the answer opens at the range; `RangeBehaviour` navigates without it. */}
+        <form class="facets" id="facets" method="get" action="#range">
           {Object.entries(keep).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
           {facets.group.length > 1 && <FacetGroup legend={text.group} name="group" values={facets.group} labelOf={(id) => groups.get(Number(id))} />}
           <FacetGroup legend={text.colour} name="color" values={facets.color} labelOf={text.value} swatchOf={text.swatch} />
@@ -65,7 +65,7 @@ export function Range(handle: Handle<Props>) {
             <p class="range__count" aria-live="polite">{text.results(total)}</p>
             <label class="range__sort">
               <span>{text.sort}</span>
-              {/* The default sort is the first option: "Reset" in the browser relies on it (`RangeBehaviour`). */}
+              {/* The default sort is the first option: `RangeBehaviour` leaves it out of the address. */}
               <select name="sort" form="facets">
                 {SORTS.filter((s) => s !== 'relevance' || defaultSort === 'relevance').map((s) => <option key={s} value={s} selected={s === sort}>{sortLabel[s]}</option>)}
               </select>

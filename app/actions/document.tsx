@@ -16,7 +16,7 @@ import { SearchBox } from '../ui/public/search-box.tsx'
 import { ShopifyCart, type Shop } from '../ui/public/shop.tsx'
 
 /** This demo's repository on GitHub (`github.com/novadb/<REPO>`), linked from the footer of every page. */
-const REPO = 'merch-remix3'
+const REPO = 'merch-remix'
 
 /** What every page of a region shows around its content: texts, the home page and two levels of navigation, the shop. */
 export type Shell = {
@@ -46,7 +46,7 @@ export async function loadShell(region: Region): Promise<Shell> {
 export function searchBoxOf({ region, text }: Shell) {
   return {
     region,
-    action: routes.search.action.href({ region }),
+    action: routes.search.href({ region }),
     suggest: routes.suggest.href(),
     text: { search: text.search, searchPlaceholder: text.searchPlaceholder },
   }

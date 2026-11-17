@@ -1,17 +1,17 @@
 /**
- * The search form: a POST to /{region}/search, the query in the field `q`. In the browser the input becomes an ARIA
- * combobox over POST /api/suggest, which answers the options as HTML (products and pages while typing, keys ↑ ↓ Enter
+ * The search form: a GET to /{region}/search, the query in the field `q`. In the browser the input becomes an ARIA
+ * combobox over GET /api/suggest, which answers the options as HTML (products and pages while typing, keys ↑ ↓ Enter
  * Esc); without JavaScript it is a plain form.
  */
 import { clientEntry, navigate, on, ref, unsafeHTML, type Handle } from 'remix/component'
 
 type Props = {
   region: string
-  /** `routes.search.action` and `routes.suggest` of the region. */
+  /** `routes.search` and `routes.suggest` of the region. */
   action: string
   suggest: string
   text: Record<'search' | 'searchPlaceholder', string>
-  /** The search page's own form, with a button and the query it was posted with. */
+  /** The search page's own form, with a button and the query it shows. */
   large?: boolean
   query?: string
 }
@@ -59,7 +59,7 @@ export const SearchBox = clientEntry(import.meta.url, function SearchBox(handle:
     let { region, action, suggest, text, large = false, query } = handle.props
     let open = shown !== undefined
     return (
-      <form class={large ? 'search search--large' : 'search'} role="search" method="post" action={action} mix={[ref((node) => (form = node)), on('submit', close)]}>
+      <form class={large ? 'search search--large' : 'search'} role="search" method="get" action={action} mix={[ref((node) => (form = node)), on('submit', close)]}>
         <input
           type="search"
           name="q"
@@ -79,8 +79,8 @@ export const SearchBox = clientEntry(import.meta.url, function SearchBox(handle:
               if (typed.length < 2) return close()
               await new Promise((done) => setTimeout(done, 150)) // a newer keystroke aborts `signal` meanwhile
               if (signal.aborted) return
-              let body = new URLSearchParams({ lang: region, q: typed, list: listId }) // POST: no URL carries a query string
-              let html = await (await fetch(suggest, { method: 'POST', body, signal })).text()
+              let query = new URLSearchParams({ lang: region, q: typed, list: listId })
+              let html = await (await fetch(`${suggest}?${query}`, { signal })).text()
               if (signal.aborted) return
               shown = html
               active = -1

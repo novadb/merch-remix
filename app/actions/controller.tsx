@@ -12,6 +12,8 @@ import { searchPages } from '../lib/site.ts'
 import { routes } from '../routes.ts'
 import { Suggestions } from '../ui/suggestions.tsx'
 import { notFound } from './not-found.tsx'
+import pageAction from './page/controller.tsx'
+import searchAction from './search/controller.tsx'
 
 /** A piece of a page, not a document: no doctype (`context.render` writes one). */
 const htmlFragment = (html: string) => new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
@@ -29,22 +31,27 @@ export default createController(routes, {
     start(context) {
       let preferred = context.headers.get('Accept-Language')?.split(',')[0]?.trim().toLowerCase() ?? ''
       let region = preferred.startsWith('de') ? 'de' : UK_TAGS.test(preferred) ? 'uk' : 'us'
-      return redirect(routes.page.index.href({ region, path: '' }))
+      return redirect(routes.page.href({ region, path: '' }))
     },
 
     media(context) {
       return serveMedia(context.params.md5, context.params.file, context.request)
     },
 
+    search: searchAction,
+
+    page: pageAction,
+
     /**
-     * The typeahead's options as HTML for the fields `lang` (a region), `q` and `list` (the ID of the box's list, which
-     * the option IDs start with); none below 2 characters.
+     * The typeahead's options as HTML for the query fields `lang` (a region), `q` and `list` (the ID of the box's list,
+     * which the option IDs start with); none below 2 characters.
      */
     async suggest(context) {
-      let region = context.formData.get('lang')
+      let { searchParams } = context.url
+      let region = searchParams.get('lang')
       if (!isRegion(region)) return notFound(context, undefined)
-      let q = String(context.formData.get('q') ?? '').trim()
-      let list = String(context.formData.get('list') ?? 'suggest')
+      let q = (searchParams.get('q') ?? '').trim()
+      let list = searchParams.get('list') ?? 'suggest'
       let productFilter = q.length >= 2 ? searchFilter(q, PRODUCT_SEARCH_FIELDS) : undefined
       if (!productFilter) return htmlFragment('')
 

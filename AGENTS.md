@@ -4,21 +4,21 @@ Single source of truth for coding agents in this repository; `CLAUDE.md` only im
 
 ## Project
 
-"Nova Merchandising": a demo website that shows NovaDB as CMS and PIM in one. Every page, product, price, picture and UI text is read live from NovaDB's Delivery API. Stack: Remix 3 (`remix` package: Fetch API router, its own component runtime with JSX, no React), server-rendered with client entries, TypeScript run by Node without a build step.
+"Nova Merchandising": a demo website that shows NovaDB as CMS and PIM in one. Every page, product, price, picture and UI text is read live from NovaDB's Delivery API. Stack: Remix 3 (the `remix` package), server-rendered with client entries, TypeScript run by Node without a build step.
 
-Agencies and developers read this code to learn how the stack works with NovaDB, then change it for their own project. Measure every change against that: easy to read (a short path from URL to HTML, no layer of our own, fewer lines); the NovaDB code in the open, one place per concern; everything else (shop, pictures, SEO, deployment) in the smallest form that is right in concept; modern, idiomatic Remix 3 and TypeScript; a complete site on the live API.
+The idea of this demo is the web platform as the framework: a handler is `Request` → `Response` (Fetch API), the state of a filtered view is the address (GET forms, `URLSearchParams`), the browser's Navigation API does the navigating and the runtime reconciles the HTML the server answers, and TypeScript runs without a build step. Not shown on purpose: React, a bundler, JSON to the browser. The in-place navigation needs the Navigation API: a browser without it loads the page.
 
 The site's HTML structure, CSS classes, label keys (`app/lib/i18n.ts`), routes and behaviour follow a contract shared with the same site in other stacks; a shared Playwright suite checks it. Change none of them on your own: say so in your answer instead.
 
-Non-goals: reading NovaDB in the browser, writes to NovaDB, a database or shared cache, query strings, a cart of our own.
+Non-goals: reading NovaDB in the browser, writes to NovaDB, a database or shared cache, a cart of our own.
 
 ## Commands and gates
 
 - Run: `npm run dev` (reads `.env`). It needs the Delivery login (`NOVA_DELIVERY_URL`, `NOVA_DELIVERY_USER`, `NOVA_DELIVERY_PASSWORD`) and fails loudly without it.
 - `npm run typecheck` (`tsc`; Node itself never type-checks), `docker build .`
-- The shared browser suite (Playwright, one project per demo; it lives outside this repository): in its folder `BASE_URL=http://localhost:3000 npx playwright test --project remix3` against a running site. CI leaves out the tests tagged `@shopify` (buy button, cart): run them locally.
-- Local container (`localhost:4004`, podman): `uv run scripts/refresh-container.py` after every completed change; `--full` after a change to `package.json`, `package-lock.json`, `tsconfig.json` or `Dockerfile`.
-- Done means: typecheck passes, `docker build` succeeds, and the suite is green against the real Delivery API, in production mode (the container). "Should work" is not a result; report each gate with its output.
+- The shared browser suite (Playwright, one project per demo; it lives outside this repository): in its folder `BASE_URL=http://localhost:3000 npx playwright test --project remix` against a running site. CI leaves out the tests tagged `@shopify` (buy button, cart): run them locally.
+- Local container (`localhost:4003`, podman): `uv run scripts/refresh-container.py` after every completed change; `--full` after a change to `package.json`, `package-lock.json`, `tsconfig.json` or `Dockerfile`.
+- Done means: typecheck passes, `docker build` succeeds, and the suite is green against the real Delivery API, in production mode (the container). Report each gate with its output.
 - The suite asserts structure and data rules, not CMS copy. Its seed paths (e.g. `/uk/shop/t-shirts/we-build-value`) are CMS data: if one disappears, fix the test's path, not the app.
 
 ## NovaDB
@@ -47,8 +47,8 @@ Before touching `app/lib/` or `app/ui/content.tsx` read `NOVADB.md`: the model a
 - Remix 3 is not React: a component is a setup function that returns a render function, state is a variable plus `handle.update()`, events are `mix={on(...)}`. Read `node_modules/remix/INDEX.md` (guides and package READMEs of the installed version) before using an API; never apply React or Remix 2 patterns from memory.
 - Everything must work without JavaScript: check a changed page with JS off (the suite has such tests) and its HTML with `curl`.
 - Only a `public/` folder below `app/` (plus `app/routes.ts` and `app/site.css`, see `app/assets.ts`) reaches the browser. The server sends HTML, never JSON: the range, the cards and the typeahead's options are server components; a client entry gets plain data and texts as props. NovaDB is read in `app/lib/` only, on the server.
-- The site writes no query string and reads none (a foreign one is ignored): filters, sorting and search are POST forms answered with the page itself (`form()` routes; `formData()` gives a GET an empty form), so a filtered view has no URL of its own. That is intended.
-- The range (`app/ui/public/range-behaviour.tsx`) posts its form itself, gets the whole page as without JavaScript, and reconciles it with `frames.top.replace()`; it never lets the runtime navigate. A navigation would put `#range` into the address, show the answer before its pictures load (the runtime's frame resolver is not exported), and race the self-clicking "Show more" against the navigation's lifecycle. The reconciler keeps live `checked`, `value`, `selected` where the answer differs: "Reset" clears them first. Cards carry `data-rmx-key`: a card that stays keeps its element.
+- A filtered view has an address of its own: filters, sorting, "Show more" and search are GET forms, their fields the page's query string (`context.url.searchParams`; any other name changes nothing). No `href`, `src` or `action` carries one, and the canonical is the plain page. The typeahead is `GET /api/suggest`, answered with HTML.
+- The range (`app/ui/public/range-behaviour.tsx`) builds the query itself and has the runtime `navigate()` there, so the address stays free of the form's `action="#range"` (for no JavaScript), empty fields and the default sort; "Reset" sends only the hidden fields. "Show more" replaces the history entry (Back leaves the range) and clicks itself only while no navigation loads: a new one aborts the running one. `resolveFrame` in `app/actions/public/entry.ts` (the default is not exported) waits for the first pictures. The reconciler keeps a control where the answer differs: after Back and "Reset" `showQuery` sets the fields from the address. Cards carry `data-rmx-key`.
 - Links and forms are intercepted by the runtime (a navigation of the top frame, reconciled into the page). `PageBusy` marks `main` busy meanwhile; the suite waits for that mark. The region switch carries `data-rmx-document` (a document load): Shopify's cart takes the region's market when the page starts.
 - `app/site.css`, `NOVADB.md` and everything in `public/` (`favicon.svg`, `robots.txt`, the fonts) are the same files in every port, kept identical from outside this repository: never adapt them to this stack. Only how they reach the browser is this demo's own (the asset server). `site.css` is also the CMS editor's stylesheet: keep its `@editor` markers, and between them nothing of the header, the range or the product page.
 - Page content is made from a closed set of components: a class `merch*` in content that is not in `COMPONENT_CLASSES` (in the shared suite) fails the suite. Compose, or follow the structure with CSS, before asking for a new one.

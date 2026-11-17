@@ -15,7 +15,7 @@ type Props = {
   crumbs: { url: string; title: string }[]
   seo: Seo
   alternates: Partial<Record<Region, string>>
-  /** The live range of a category page, for the posted fields; null for a page without one. */
+  /** The live range of a category page, for the query's fields; null for a page without one. */
   range: RangeData | null
   groups: Map<number, string>
 }

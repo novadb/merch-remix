@@ -1,5 +1,5 @@
 /**
- * The options of the typeahead's list (`POST /api/suggest`): the search box in the browser shows them as they come.
+ * The options of the typeahead's list (`GET /api/suggest`): the search box in the browser shows them as they come.
  * Option IDs are `{list}-{index}` (`list`: the ID of the box's list), so the box can name the highlighted one.
  */
 import type { Handle } from 'remix/component'

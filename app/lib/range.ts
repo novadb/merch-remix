@@ -11,12 +11,12 @@ export type FacetValue = { value: string; count: number; selected: boolean }
 export type Facets = { group: FacetValue[]; color: FacetValue[]; material: FacetValue[]; inStock: number; priceMin: number; priceMax: number }
 
 /**
- * The filters and sorting of a posted range form; the form's "reset" button clears them all. Only the "Show more"
- * button posts `shown`, so any other change starts again with the first batch.
+ * The filters and sorting in a query string (the range form's fields; any other name changes nothing). The form's
+ * "reset" button, sent without JavaScript, clears them all. Only the "Show more" button sends `shown`, so any other
+ * change starts again with the first batch.
  */
-function parseSelection(posted: FormData): Selection {
-  let params = new URLSearchParams()
-  if (!posted.has('reset')) for (let [name, value] of posted) if (typeof value === 'string') params.append(name, value)
+function parseSelection(query: URLSearchParams): Selection {
+  let params = query.has('reset') ? new URLSearchParams() : query
   let num = (key: string) => {
     let value = Number(params.get(key))
     return params.get(key) && Number.isFinite(value) ? value : undefined
@@ -93,9 +93,9 @@ function applySelection(products: Product[], s: Selection, defaultSort: Sort): {
 /** A range as a page shows it: the cards rendered (one batch or more), the total and the facets of the whole result. */
 export type RangeData = { items: Product[]; total: number; facets: Facets; selection: Selection; defaultSort: Sort }
 
-/** The range of `products` for the posted fields (none: the page as opened): filtered, sorted, counted, cut to the cards shown. */
-export function rangeOf(products: Product[], posted: FormData, defaultSort: Sort): RangeData {
-  let selection = parseSelection(posted)
+/** The range of `products` for the query's fields (none: the page as opened): filtered, sorted, counted, cut to the cards shown. */
+export function rangeOf(products: Product[], query: URLSearchParams, defaultSort: Sort): RangeData {
+  let selection = parseSelection(query)
   let { items, facets } = applySelection(products, selection, defaultSort)
   return { items: items.slice(0, selection.shown), total: items.length, facets, selection, defaultSort }
 }

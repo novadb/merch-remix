@@ -7,7 +7,7 @@ import { NAME, PAGE, PAGE_SEARCH_FIELDS, TYPE } from './schema.ts'
 /** One node of a Visual Document as the Delivery API returns it. */
 export type VNode = {
   type: 'group' | 'text' | 'image' | 'object' | 'unknown'
-  /** API identifier of the component's definition. The site does not read it: it renders by `type`, `element` and `class` (`merchChapter`, `imageWithCaption`), and the set of classes is closed in the CMS (`COMPONENT_CLASSES` in `tests/site.spec.ts`). */
+  /** API identifier of the component's definition. The site does not read it: it renders by `type`, `element` and `class` (`merchChapter`, `imageWithCaption`), and the set of classes is closed in the CMS (`COMPONENT_CLASSES` in the shared suite). */
   definition: string
   element?: string
   class?: string

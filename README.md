@@ -1,5 +1,8 @@
 # Nova Merchandising — Remix 3
 
+**Live:** <https://remix.merch.novadb.com/>: this repository's `main`, running against NovaDB. `/` picks the
+region by browser language (`/de/`, `/uk/`, `/us/`); the checkout is in Shopify's test mode.
+
 The demo site "Nova Merchandising" built with Remix 3: the Fetch API router (`remix/router`), Remix's own component
 runtime (`remix/component`, JSX that is not React), server-rendered, with client entries where the page is interactive.
 Every page, product, price and picture is read live from NovaDB's Delivery API (branch `merchDemo`).
@@ -14,12 +17,28 @@ The same shop in other stacks: React Router ([live](https://react-router.merch.n
 A request enters `server.ts`, runs through the middleware in `app/router.ts`, matches a route in `app/routes.ts` and is
 answered by an action in `app/actions/`: a Web `Response`, mostly HTML rendered from components with `context.render()`.
 Everything works without JavaScript. In the browser the runtime (`app/actions/public/entry.ts`) lets links and forms
-navigate without a page load; the range's filters apply in place (the range posts its form in the background and
-reconciles the page that answers into the current one: no page load, the URL stays), "Show more" loads while scrolling, the search box suggests while typing (`POST /api/suggest`, as HTML),
-and Shopify's own buy button and cart appear in the site's colours. Data only ever comes from the server.
+navigate without a page load; the range's filters apply in place (the form's fields become the page's query string, the
+runtime navigates there and reconciles the page that answers into the current one: no page load, the address follows),
+"Show more" loads while scrolling, the search box suggests while typing (`GET /api/suggest`, as HTML), and Shopify's own
+buy button and cart appear in the site's colours. Data only ever comes from the server.
 
 There is no build step: Node runs the TypeScript sources (`remix/node-tsx`), and the asset server (`app/assets.ts`)
 compiles each browser module when it is requested, in production minified and under a name with its content hash.
+
+## What this demo shows, and what it does not
+
+It shows **the web platform as the framework**, without a build step. A request is a `Request` and the answer a
+`Response` (the Fetch API), routed by `remix/router`; the query string is read with `URLSearchParams`; the browser's
+Navigation API does the navigating. The pages are components of Remix's own runtime (JSX that is not React),
+rendered to HTML on the server. A filter, a sort, "Show more" and a search are GET forms: their fields are the page's query string, so a
+filtered view has an address of its own that can be shared, reloaded and stepped back to. In the browser the runtime
+navigates there, the server answers with the page as HTML, and the runtime reconciles it into the one in view: a card
+that stays is the same element, and the focus and the scroll position stay. The typeahead's options are HTML rendered by
+the server too.
+
+It does not show React, a bundler, or JSON to the browser: the server sends HTML only, and a client entry (the search
+box, the range's behaviour, the shop) gets plain data and texts as props. It does not show a client-side router, a store
+or a cart of its own; the shop is Shopify's Buy Button.
 
 ## Run
 
@@ -51,8 +70,8 @@ the running site.
 | `NOVADB.md` | how the site reads NovaDB: the model, the Delivery API's concepts, what the site decided |
 | `server.ts` | the Node server: hands every request to the router; trusts the proxy's `X-Forwarded-*` headers |
 | `app/routes.ts` | every URL the site answers, with typed `href()`s for links and forms |
-| `app/router.ts`, `app/middleware/one-url.ts` | middleware (log, compression, static files, one URL per page, form data, rendering) and which controller owns which routes |
-| `app/actions/controller.tsx` | `/` → region by `Accept-Language`, the picture proxy, the typeahead's JSON, the browser modules |
+| `app/router.ts`, `app/middleware/one-url.ts` | middleware (log, compression, static files, one URL per page, rendering) and the controller that owns the routes |
+| `app/actions/controller.tsx` | `/` → region by `Accept-Language`, the picture proxy, the typeahead's options, the browser modules; hands the page and search routes to their actions |
 | `app/actions/page/` | `/{region}/…`: a page (content + live range) or a product |
 | `app/actions/search/` | `/{region}/search` |
 | `app/actions/document.tsx`, `not-found.tsx` | the document shell with header and footer; the 404 page |
@@ -65,11 +84,10 @@ the running site.
 | `app/lib/seo.ts` | canonical and hreflang URLs |
 | `app/ui/content.tsx` | Visual Document renderer, page teaser, breadcrumb |
 | `app/ui/product-card.tsx`, `range.tsx`, `suggestions.tsx` | product card, live range (facets, sorting, grid), the typeahead's options |
-| `app/ui/public/` | what runs in the browser too: the range's background posts, search box, shop, the busy mark of a loading page |
+| `app/ui/public/` | what runs in the browser too: the range's behaviour, search box, shop, the busy mark of a loading page |
 | `app/site.css` | the stylesheet, the same file in every demo |
 
 ## Deviations
 
 - The redirect of a URL to its one form (`/en/` → `/en`) has no body.
-- `POST /api/suggest` answers HTML (the typeahead's options, their IDs starting with the extra field `list`), never
-  JSON: the server renders what the search box shows.
+- The in-place navigation needs the browser's Navigation API. A browser without it loads the page for every filter, sort and search, which the visitor sees as the same result.

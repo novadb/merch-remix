@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Brings the local container of this demo (http://localhost:4004) up to date.
+"""Brings the local container of this demo (http://localhost:4003) up to date.
 
 Usage (from this folder):
   uv run scripts/refresh-container.py          # fast, ~3 s: copy the sources into the running container, restart it
@@ -27,9 +27,9 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = "merch-remix3"
+NAME = "merch-remix"
 IMAGE = f"localhost/{NAME}:latest"
-PORT = 4004
+PORT = 4003
 # The port inside the container (the Dockerfile's PORT, as in production)
 CONTAINER_PORT = 3000
 CHECK_URL = f"http://127.0.0.1:{PORT}/de/"
