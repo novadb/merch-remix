@@ -1,0 +1,24 @@
+{
+  "name": "merch-remix3",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch --import remix/node-tsx server.ts",
+    "start": "node --import remix/node-tsx server.ts",
+    "typecheck": "tsc",
+    "test": "playwright test"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "remix": "^3.2.0",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
